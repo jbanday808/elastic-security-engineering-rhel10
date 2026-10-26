@@ -78,3 +78,22 @@ Run `bash scripts/verify-screenshots.sh` to check that all 27 numbered figures a
 ## Publish to GitHub
 
 Follow [WSL / VS Code / GitHub commands](docs/github-upload.md). Review [safe publication](docs/security-publication-checklist.md) first.
+
+---
+
+# Let's Connect
+
+- **LinkedIn:**  
+  https://www.linkedin.com/in/james-allen-morta-banday-62a391128/
+- **GitHub:**  
+  https://github.com/jbanday808
+- **Email:**  
+  [jamesbanday1@gmail.com](mailto:jamesbanday1@gmail.com)
+
+---
+
+# Author
+
+**James Banday**
+
+Elastic Security Engineering | Detection Engineering | Threat Hunting | SOC Operations | Cloud Security
