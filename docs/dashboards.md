@@ -32,6 +32,17 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Tracks authentication activity every 30 minutes to identify unusual changes.
 
+**Full ES|QL query:**
+
+```esql
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND MV_CONTAINS(event.category, "authentication")
+| STATS authentication_events = COUNT(*)
+  BY time_bucket = BUCKET(@timestamp, 30 minutes)
+| SORT time_bucket ASC
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves system authentication records. |
@@ -46,6 +57,18 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`failed-auth-by-user.esql`](../queries/authentication/failed-auth-by-user.esql)
 
 **Purpose:** Finds accounts with the most failed authentication attempts.
+
+**Full ES|QL query:**
+
+```esql
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+  AND event.outcome == "failure"
+| STATS failed_logins = COUNT(*) BY username = COALESCE(user.name, "Unknown")
+| SORT failed_logins DESC
+| LIMIT 10
+```
 
 | Line | Explanation |
 |---:|---|
@@ -63,6 +86,16 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Compares the recorded results of authentication activity.
 
+**Full ES|QL query:**
+
+```esql
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND event.outcome IS NOT NULL
+| STATS authentication_events = COUNT(*) BY login_outcome = event.outcome
+| SORT authentication_events DESC
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves the authentication records. |
@@ -77,6 +110,16 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Shows the distribution of authentication outcomes, including missing classifications.
 
+**Full ES|QL query:**
+
+```esql
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+| STATS authentication_events = COUNT(*)
+  BY authentication_outcome = COALESCE(event.outcome, "unknown")
+| SORT authentication_events DESC
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves the authentication records. |
@@ -90,6 +133,18 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`recent-auth-events.esql`](../queries/authentication/recent-auth-events.esql)
 
 **Purpose:** Displays recent authentication events for investigation.
+
+**Full ES|QL query:**
+
+```esql
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+  AND MV_CONTAINS(event.category, "authentication")
+| SORT @timestamp DESC
+| LIMIT 100
+| KEEP @timestamp, host.name, user.name, event.action, event.outcome, source.ip, message
+```
 
 | Line | Explanation |
 |---:|---|
@@ -106,6 +161,22 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`sudo-activity.esql`](../queries/authentication/sudo-activity.esql)
 
 **Purpose:** Reviews commands run with elevated administrative permissions.
+
+**Full ES|QL query:**
+
+```esql
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND system.auth.sudo.command IS NOT NULL
+| SORT @timestamp DESC
+| LIMIT 50
+| KEEP @timestamp, host.name, user.name, system.auth.sudo.user,
+       system.auth.sudo.command, system.auth.sudo.tty, message
+| RENAME user.name AS executed_by,
+         system.auth.sudo.user AS target_user,
+         system.auth.sudo.command AS sudo_command,
+         system.auth.sudo.tty AS terminal
+```
 
 | Line | Explanation |
 |---:|---|
@@ -127,6 +198,18 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Identifies IP addresses associated with the most authentication events.
 
+**Full ES|QL query:**
+
+```esql
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+  AND source.ip IS NOT NULL
+| STATS authentication_events = COUNT(*) BY source_ip = source.ip
+| SORT authentication_events DESC
+| LIMIT 10
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves system authentication records. |
@@ -143,6 +226,15 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Counts authentication events in the selected period.
 
+**Full ES|QL query:**
+
+```esql
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND MV_CONTAINS(event.category, "authentication")
+| STATS total_auth_events = COUNT(*)
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves system authentication records. |
@@ -157,6 +249,18 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`cpu-usage-trend.esql`](../queries/logstash/cpu-usage-trend.esql)
 
 **Purpose:** Tracks Logstash1 CPU usage over time.
+
+**Full ES|QL query:**
+
+```esql
+FROM metrics-logstash.node-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| STATS cpu_pct = AVG(logstash.node.stats.process.cpu.percent)
+  BY time_bucket = BUCKET(@timestamp, 30 minutes)
+| SORT time_bucket ASC
+```
 
 | Line | Explanation |
 |---:|---|
@@ -174,6 +278,18 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Displays the latest recorded Logstash Java memory usage.
 
+**Full ES|QL query:**
+
+```esql
+FROM metrics-logstash.node-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart AND @timestamp < ?_tend
+| SORT @timestamp DESC
+| LIMIT 1
+| EVAL heap_pct = TO_DOUBLE(logstash.node.stats.jvm.mem.heap_used_percent)
+| KEEP heap_pct
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves Logstash node measurements. |
@@ -190,6 +306,18 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Tracks Logstash Java memory usage over time.
 
+**Full ES|QL query:**
+
+```esql
+FROM metrics-logstash.node-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| STATS heap_pct = ROUND(AVG(logstash.node.stats.jvm.mem.heap_used_percent), 1)
+  BY time_bucket = BUCKET(@timestamp, 30 minutes)
+| SORT time_bucket ASC
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves Logstash node measurements. |
@@ -205,6 +333,24 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`logstash-health.esql`](../queries/logstash/logstash-health.esql)
 
 **Purpose:** Summarizes Logstash1 health and resource usage.
+
+**Full ES|QL query:**
+
+```esql
+FROM metrics-logstash.node-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| SORT @timestamp DESC
+| LIMIT 1
+| EVAL uptime_hours = ROUND(TO_LONG(logstash.node.stats.jvm.uptime_in_millis) / 3600000.0, 1)
+| RENAME logstash.node.stats.logstash.status AS node_health,
+         logstash.node.stats.logstash.version AS version,
+         logstash.node.stats.jvm.mem.heap_used_percent AS heap_pct,
+         logstash.node.stats.process.cpu.percent AS cpu_pct,
+         @timestamp AS last_seen
+| KEEP host.name, node_health, version, heap_pct, cpu_pct, uptime_hours, last_seen
+```
 
 | Line | Explanation |
 |---:|---|
@@ -228,6 +374,14 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Shows which Logstash monitoring data types are available.
 
+**Full ES|QL query:**
+
+```esql
+FROM metrics-logstash.*
+| STATS records = COUNT(*) BY data_stream.dataset, host.name
+| SORT records DESC
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves Logstash monitoring records from all matching datasets. |
@@ -239,6 +393,22 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`pipeline-events.esql`](../queries/logstash/pipeline-events.esql)
 
 **Purpose:** Reports the latest event counters for each Logstash pipeline.
+
+**Full ES|QL query:**
+
+```esql
+FROM metrics-logstash.pipeline-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND logstash.pipeline.name IS NOT NULL
+| EVAL received = TO_LONG(`logstash.pipeline.total.events.in`),
+       emitted = TO_LONG(logstash.pipeline.total.events.out)
+| STATS events_received = LAST(received, @timestamp),
+        events_processed = LAST(emitted, @timestamp),
+        last_seen = MAX(@timestamp)
+  BY logstash.pipeline.name
+| SORT logstash.pipeline.name ASC
+```
 
 | Line | Explanation |
 |---:|---|
@@ -260,6 +430,21 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Checks whether Logstash has events waiting in its pipelines.
 
+**Full ES|QL query:**
+
+```esql
+FROM metrics-logstash.pipeline-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| EVAL queued = TO_LONG(logstash.pipeline.total.queues.events)
+| STATS queued_events = LAST(queued, @timestamp),
+        queue_type = LAST(logstash.pipeline.total.queues.type, @timestamp),
+        last_seen = MAX(@timestamp)
+  BY logstash.pipeline.name
+| SORT logstash.pipeline.name ASC
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves Logstash pipeline measurements. |
@@ -278,6 +463,22 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`pipeline-throughput.esql`](../queries/logstash/pipeline-throughput.esql)
 
 **Purpose:** Measures how quickly events enter and leave Logstash pipelines.
+
+**Full ES|QL query:**
+
+```esql
+FROM metrics-logstash.pipeline-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| STATS input_rate = AVG(logstash.pipeline.total.flow.input_throughput.current),
+        output_rate = AVG(logstash.pipeline.total.flow.output_throughput.current)
+  BY time_bucket = BUCKET(@timestamp, 48, ?_tstart, ?_tend)
+| WHERE input_rate IS NOT NULL OR output_rate IS NOT NULL
+| EVAL input_rate = ROUND(input_rate, 2),
+       output_rate = ROUND(output_rate, 2)
+| SORT time_bucket ASC
+```
 
 | Line | Explanation |
 |---:|---|
@@ -299,6 +500,16 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Shows recent process activity on the Logstash1 server.
 
+**Full ES|QL query:**
+
+```esql
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "logstash1.domain250.example.com"
+| SORT @timestamp DESC
+| LIMIT 20
+| KEEP @timestamp, host.name, user.name, process.name, event.action
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves endpoint process activity records. |
@@ -312,6 +523,15 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`recent-application-logs.esql`](../queries/logstash/recent-application-logs.esql)
 
 **Purpose:** Displays recent Logstash application log messages.
+
+**Full ES|QL query:**
+
+```esql
+FROM logs-logstash.log-*
+| SORT @timestamp DESC
+| LIMIT 20
+| KEEP @timestamp, host.name, message
+```
 
 | Line | Explanation |
 |---:|---|
@@ -327,6 +547,18 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`process-actions-node1.esql`](../queries/security/process-actions-node1.esql)
 
 **Purpose:** Shows the types of process events recorded on Node1.
+
+**Full ES|QL query:**
+
+```esql
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "node1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+  AND event.action IS NOT NULL
+| STATS process_events = COUNT(*) BY process_action = event.action
+| SORT process_events DESC
+```
 
 | Line | Explanation |
 |---:|---|
@@ -344,6 +576,18 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Identifies accounts with the most recorded process activity.
 
+**Full ES|QL query:**
+
+```esql
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "node1.domain250.example.com"
+  AND @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND user.name IS NOT NULL
+| STATS process_events = COUNT(*) BY username = user.name
+| SORT process_events DESC
+| LIMIT 10
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves endpoint process records. |
@@ -360,6 +604,17 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Tracks process events on Node1 over time.
 
+**Full ES|QL query:**
+
+```esql
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "node1.domain250.example.com"
+  AND @timestamp >= ?_tstart AND @timestamp < ?_tend
+| STATS process_events = COUNT(*)
+  BY time_bucket = BUCKET(@timestamp, 30 minutes)
+| SORT time_bucket ASC
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves endpoint process activity records. |
@@ -374,6 +629,18 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`recent-processes-node1.esql`](../queries/security/recent-processes-node1.esql)
 
 **Purpose:** Displays recent process activity on Node1.
+
+**Full ES|QL query:**
+
+```esql
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "node1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| SORT @timestamp DESC
+| LIMIT 50
+| KEEP @timestamp, host.name, user.name, process.name, process.command_line, event.action
+```
 
 | Line | Explanation |
 |---:|---|
@@ -390,6 +657,19 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`top-processes-node1.esql`](../queries/security/top-processes-node1.esql)
 
 **Purpose:** Identifies frequently recorded programs on Node1.
+
+**Full ES|QL query:**
+
+```esql
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "node1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+  AND process.name IS NOT NULL
+| STATS process_events = COUNT(*) BY process_name = process.name
+| SORT process_events DESC
+| LIMIT 10
+```
 
 | Line | Explanation |
 |---:|---|
@@ -408,6 +688,15 @@ The explanations describe what the queries are designed to do, not a live readin
 
 **Purpose:** Counts recorded process events on Node1.
 
+**Full ES|QL query:**
+
+```esql
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "node1.domain250.example.com"
+  AND @timestamp >= ?_tstart AND @timestamp < ?_tend
+| STATS total_process_events = COUNT(*)
+```
+
 | Line | Explanation |
 |---:|---|
 | 1 | Retrieves endpoint process activity records. |
@@ -420,6 +709,16 @@ The explanations describe what the queries are designed to do, not a live readin
 ### [`unique-processes.esql`](../queries/security/unique-processes.esql)
 
 **Purpose:** Counts distinct program names observed on Node1.
+
+**Full ES|QL query:**
+
+```esql
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "node1.domain250.example.com"
+  AND @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND process.name IS NOT NULL
+| STATS unique_processes = COUNT_DISTINCT(process.name)
+```
 
 | Line | Explanation |
 |---:|---|
