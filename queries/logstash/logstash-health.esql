@@ -1,0 +1,13 @@
+FROM metrics-logstash.node-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| SORT @timestamp DESC
+| LIMIT 1
+| EVAL uptime_hours = ROUND(TO_LONG(logstash.node.stats.jvm.uptime_in_millis) / 3600000.0, 1)
+| RENAME logstash.node.stats.logstash.status AS node_health,
+         logstash.node.stats.logstash.version AS version,
+         logstash.node.stats.jvm.mem.heap_used_percent AS heap_pct,
+         logstash.node.stats.process.cpu.percent AS cpu_pct,
+         @timestamp AS last_seen
+| KEEP host.name, node_health, version, heap_pct, cpu_pct, uptime_hours, last_seen

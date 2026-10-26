@@ -1,0 +1,11 @@
+FROM metrics-logstash.pipeline-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| STATS input_rate = AVG(logstash.pipeline.total.flow.input_throughput.current),
+        output_rate = AVG(logstash.pipeline.total.flow.output_throughput.current)
+  BY time_bucket = BUCKET(@timestamp, 48, ?_tstart, ?_tend)
+| WHERE input_rate IS NOT NULL OR output_rate IS NOT NULL
+| EVAL input_rate = ROUND(input_rate, 2),
+       output_rate = ROUND(output_rate, 2)
+| SORT time_bucket ASC

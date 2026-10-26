@@ -1,0 +1,7 @@
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+  AND event.outcome == "failure"
+| STATS failed_logins = COUNT(*) BY username = COALESCE(user.name, "Unknown")
+| SORT failed_logins DESC
+| LIMIT 10

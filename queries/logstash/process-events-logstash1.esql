@@ -1,0 +1,5 @@
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "logstash1.domain250.example.com"
+| SORT @timestamp DESC
+| LIMIT 20
+| KEEP @timestamp, host.name, user.name, process.name, event.action

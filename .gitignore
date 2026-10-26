@@ -1,0 +1,44 @@
+# Secrets and local credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.keystore
+*credentials*.json
+*service-account*.json
+*enrollment-token*
+*client-secret*
+**/private/
+**/secrets/
+**/sensitive/
+
+# Raw document exports: review/redact before publication
+*.docx
+*.doc
+
+# Editors and OS
+.vscode/*.log
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Generated and temporary
+__pycache__/
+*.pyc
+*.log
+*.zip
+
+# VMware VM files and raw outputs
+*.vmx
+*.vmdk
+*.nvram
+*.vmsd
+*.vmsn
+*.vmem
+*.hlog
+.env.local
+*token*.txt

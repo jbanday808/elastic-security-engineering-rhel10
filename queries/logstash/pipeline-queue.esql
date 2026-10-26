@@ -1,0 +1,10 @@
+FROM metrics-logstash.pipeline-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| EVAL queued = TO_LONG(logstash.pipeline.total.queues.events)
+| STATS queued_events = LAST(queued, @timestamp),
+        queue_type = LAST(logstash.pipeline.total.queues.type, @timestamp),
+        last_seen = MAX(@timestamp)
+  BY logstash.pipeline.name
+| SORT logstash.pipeline.name ASC

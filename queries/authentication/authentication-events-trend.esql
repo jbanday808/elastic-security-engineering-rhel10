@@ -1,0 +1,6 @@
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND MV_CONTAINS(event.category, "authentication")
+| STATS authentication_events = COUNT(*)
+  BY time_bucket = BUCKET(@timestamp, 30 minutes)
+| SORT time_bucket ASC

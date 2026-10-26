@@ -1,0 +1,7 @@
+FROM metrics-logstash.node-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| STATS heap_pct = ROUND(AVG(logstash.node.stats.jvm.mem.heap_used_percent), 1)
+  BY time_bucket = BUCKET(@timestamp, 30 minutes)
+| SORT time_bucket ASC

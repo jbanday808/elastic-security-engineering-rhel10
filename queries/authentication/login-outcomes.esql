@@ -1,0 +1,5 @@
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND event.outcome IS NOT NULL
+| STATS authentication_events = COUNT(*) BY login_outcome = event.outcome
+| SORT authentication_events DESC

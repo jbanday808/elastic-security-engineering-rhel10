@@ -1,0 +1,11 @@
+FROM metrics-logstash.pipeline-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND logstash.pipeline.name IS NOT NULL
+| EVAL received = TO_LONG(`logstash.pipeline.total.events.in`),
+       emitted = TO_LONG(logstash.pipeline.total.events.out)
+| STATS events_received = LAST(received, @timestamp),
+        events_processed = LAST(emitted, @timestamp),
+        last_seen = MAX(@timestamp)
+  BY logstash.pipeline.name
+| SORT logstash.pipeline.name ASC

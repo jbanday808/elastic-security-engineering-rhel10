@@ -1,0 +1,11 @@
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND system.auth.sudo.command IS NOT NULL
+| SORT @timestamp DESC
+| LIMIT 50
+| KEEP @timestamp, host.name, user.name, system.auth.sudo.user,
+       system.auth.sudo.command, system.auth.sudo.tty, message
+| RENAME user.name AS executed_by,
+         system.auth.sudo.user AS target_user,
+         system.auth.sudo.command AS sudo_command,
+         system.auth.sudo.tty AS terminal

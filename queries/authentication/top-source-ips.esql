@@ -1,0 +1,7 @@
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+  AND source.ip IS NOT NULL
+| STATS authentication_events = COUNT(*) BY source_ip = source.ip
+| SORT authentication_events DESC
+| LIMIT 10

@@ -1,0 +1,4 @@
+FROM logs-logstash.log-*
+| SORT @timestamp DESC
+| LIMIT 20
+| KEEP @timestamp, host.name, message

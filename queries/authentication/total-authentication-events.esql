@@ -1,0 +1,4 @@
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+  AND MV_CONTAINS(event.category, "authentication")
+| STATS total_auth_events = COUNT(*)

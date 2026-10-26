@@ -1,0 +1,7 @@
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "node1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+  AND event.action IS NOT NULL
+| STATS process_events = COUNT(*) BY process_action = event.action
+| SORT process_events DESC

@@ -1,0 +1,5 @@
+* text=auto
+*.sh text eol=lf
+*.esql text eol=lf
+*.conf.example text eol=lf
+*.png binary

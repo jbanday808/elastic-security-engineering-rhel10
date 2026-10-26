@@ -1,0 +1,7 @@
+FROM metrics-logstash.node-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart AND @timestamp < ?_tend
+| SORT @timestamp DESC
+| LIMIT 1
+| EVAL heap_pct = TO_DOUBLE(logstash.node.stats.jvm.mem.heap_used_percent)
+| KEEP heap_pct

@@ -1,0 +1,7 @@
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+  AND MV_CONTAINS(event.category, "authentication")
+| SORT @timestamp DESC
+| LIMIT 100
+| KEEP @timestamp, host.name, user.name, event.action, event.outcome, source.ip, message

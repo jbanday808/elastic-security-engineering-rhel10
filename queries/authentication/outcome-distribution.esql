@@ -1,0 +1,5 @@
+FROM logs-system.auth-*
+| WHERE @timestamp >= ?_tstart AND @timestamp < ?_tend
+| STATS authentication_events = COUNT(*)
+  BY authentication_outcome = COALESCE(event.outcome, "unknown")
+| SORT authentication_events DESC

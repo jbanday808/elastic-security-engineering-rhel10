@@ -1,0 +1,6 @@
+FROM logs-endpoint.events.process-*
+| WHERE host.name == "node1.domain250.example.com"
+  AND @timestamp >= ?_tstart AND @timestamp < ?_tend
+| STATS process_events = COUNT(*)
+  BY time_bucket = BUCKET(@timestamp, 30 minutes)
+| SORT time_bucket ASC

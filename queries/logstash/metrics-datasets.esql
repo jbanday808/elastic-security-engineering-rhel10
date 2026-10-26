@@ -1,0 +1,3 @@
+FROM metrics-logstash.*
+| STATS records = COUNT(*) BY data_stream.dataset, host.name
+| SORT records DESC

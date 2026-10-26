@@ -1,0 +1,7 @@
+FROM metrics-logstash.node-*
+| WHERE host.name == "logstash1.domain250.example.com"
+  AND @timestamp >= ?_tstart
+  AND @timestamp < ?_tend
+| STATS cpu_pct = AVG(logstash.node.stats.process.cpu.percent)
+  BY time_bucket = BUCKET(@timestamp, 30 minutes)
+| SORT time_bucket ASC
